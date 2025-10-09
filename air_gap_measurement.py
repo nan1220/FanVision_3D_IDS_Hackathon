@@ -1,8 +1,13 @@
 import cv2
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-def preprocess_image(gray_image, white_threshold=200, black_threshold=50):
+
+DEBUG = False
+VISUALIZE = False
+
+def preprocess_image(gray_image, white_threshold=200, black_threshold=50, rotate=True):
     """
     Preprocess the image to make grey areas black, keeping only white and black regions.
     
@@ -14,21 +19,64 @@ def preprocess_image(gray_image, white_threshold=200, black_threshold=50):
     Returns:
         preprocessed_image: Binary image with only black and white pixels
     """
+
+    if rotate:
+        gray_image = cv2.rotate(gray_image, cv2.ROTATE_90_CLOCKWISE)
+
     preprocessed = gray_image.copy()
     
     # Make truly white pixels white (255)
+    white_threshold = 80
     preprocessed[gray_image >= white_threshold] = 255
     
     # Make dark pixels black (0)
+    black_threshold = 80
     preprocessed[gray_image <= black_threshold] = 0
     
     # Make grey pixels (between thresholds) black
     grey_mask = (gray_image > black_threshold) & (gray_image < white_threshold)
     preprocessed[grey_mask] = 0
+
+    # Debug: Show pixel distribution and images
+    if DEBUG:
+        total_pixels = gray_image.shape[0] * gray_image.shape[1]
+        white_pixels = np.sum(preprocessed == 255)
+        black_pixels = np.sum(preprocessed == 0)
+        
+        print(f"After preprocessing:")
+        print(f"  White pixels (255): {white_pixels} ({100*white_pixels/total_pixels:.1f}%)")
+        print(f"  Black pixels (0): {black_pixels} ({100*black_pixels/total_pixels:.1f}%)")
+        
+        # Show before and after images
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
+        
+        # Original image
+        ax1.imshow(gray_image, cmap='gray', vmin=0, vmax=255)
+        ax1.set_title(f'Original Image\nMin: {gray_image.min()}, Max: {gray_image.max()}, Mean: {gray_image.mean():.1f}')
+        ax1.axis('off')
+        
+        # Thresholded regions visualization
+        threshold_vis = np.zeros_like(gray_image)
+        threshold_vis[gray_image >= white_threshold] = 255  # White areas
+        threshold_vis[gray_image <= black_threshold] = 128  # Grey for black areas
+        threshold_vis[(gray_image > black_threshold) & (gray_image < white_threshold)] = 64  # Dark grey for grey areas
+        
+        ax2.imshow(threshold_vis, cmap='gray', vmin=0, vmax=255)
+        ax2.set_title(f'Threshold Regions\nWhite≥{white_threshold}, Black≤{black_threshold}')
+        ax2.axis('off')
+        
+        # Final preprocessed image
+        ax3.imshow(preprocessed, cmap='gray', vmin=0, vmax=255)
+        ax3.set_title(f'Preprocessed Result\nWhite: {white_pixels}, Black: {black_pixels}')
+        ax3.axis('off')
+        
+        plt.tight_layout()
+        plt.show()
+        
     
     return preprocessed
 
-def measure_white_pixels_per_row(image_path, white_threshold=200, black_threshold=50, scale_factor_mm_per_pixel=0.2):
+def measure_white_pixels_per_row(image_path, white_threshold=200, black_threshold=50, scale_factor_mm_per_pixel=0.05):
     """
     Measure the length of white pixels in each row of an image.
     
@@ -38,10 +86,15 @@ def measure_white_pixels_per_row(image_path, white_threshold=200, black_threshol
         black_threshold (int): Threshold value to consider a pixel as black (0-255)
         scale_factor_mm_per_pixel (float): Scale factor to convert pixels to mm
     
-    Returns:
+
+
+    plt.xticks(index[::max(1, len(index)//20)])  # Show max 20 tick marks    # Set x-axis to show all indices    Returns:
         tuple: (white_pixel_lengths, image_height, image_width, original_gray, preprocessed_gray, scale_factor)
     """
     # Load the image
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    full_image_path = os.path.join(script_dir, image_path)
+
     image = cv2.imread(image_path)
     if image is None:
         raise ValueError(f"Could not load image from {image_path}")
@@ -129,7 +182,7 @@ def find_longest_white_sequence(white_pixel_lengths):
     
     return longest_sequence
 
-def get_sequence_positions(preprocessed_image, row_index, white_threshold=240):
+def get_sequence_positions(preprocessed_image, row_index, white_threshold=200):
     """
     Get the start and end positions of white sequences in a specific row.
     """
@@ -470,7 +523,7 @@ def find_shortest_sequence_filtered(white_pixel_lengths, outlier_info):
         'length': shortest_overall
     }
 
-def visualize_measurements_with_outliers(white_pixel_lengths, image_height, preprocessed_image, original_image, scale_factor_mm_per_pixel=0.2, outlier_method='row_change', threshold_factor=0.5, min_pixel_threshold=10, outlier_expansion=5):
+def visualize_measurements_with_outliers(white_pixel_lengths, image_height, preprocessed_image, original_image, scale_factor_mm_per_pixel=0.05, outlier_method='row_change', threshold_factor=0.5, min_pixel_threshold=10, outlier_expansion=5):
     """
     Create visualizations highlighting outliers and showing filtered shortest sequence with mm scaling.
     """
@@ -633,7 +686,8 @@ def visualize_measurements_with_outliers(white_pixel_lengths, image_height, prep
     plt.subplots_adjust(hspace=0.35, wspace=0.25)  # Increased hspace from default (~0.2) to 0.35
     
     plt.suptitle(f'Air Gap Measurement ({len(outlier_rows)} outliers, Scale: {scale_factor_mm_per_pixel} mm/px)', y=0.95, fontsize=16)  # Adjusted y position from 0.98 to 0.95
-    plt.show()
+    if VISUALIZE:
+        plt.show()
     
     # Print detailed results with mm values
     print(f"\nExpanded Outlier Detection Results:")
@@ -680,10 +734,9 @@ def visualize_measurements_with_outliers(white_pixel_lengths, image_height, prep
     
     return outlier_info, shortest_sequence_info
 
-def main():
+def main(image_path="image_54.png"):
     # Example usage with scaling
-    image_path = "image_54.png"  # Change this to your image path
-    scale_factor_mm_per_pixel = 0.2  # Default scale factor: 0.2 mm per pixel
+    scale_factor_mm_per_pixel = 0.0566  # Default scale factor: 0.05 mm per pixel
     
     try:
         # Measure white pixels with scaling
@@ -713,11 +766,12 @@ def main():
             scale_factor_mm_per_pixel=scale_factor,
             outlier_method='row_change', threshold_factor=0.3, min_pixel_threshold=10, outlier_expansion=5)
         
-        return measurements, outlier_info
+        return measurements, outlier_info, shortest_info
         
     except Exception as e:
         print(f"Error: {e}")
         return None, None
 
 if __name__ == "__main__":
-    main()
+    #main("image_54.png")
+    main(rf"C:\Users\TBKAMMER\PycharmProjects\Spielkasten\FanVision_3D_IDS_Hackathon\data\air_gap\bildserie-3\spalt_39.png")
