@@ -97,6 +97,6 @@ for i, contour in enumerate(contours):
     cv2.putText(img_contour, f"{length_mm:.1f} mm", (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
 cv2.imshow('Contours with Lengths', img_contour)
-cv2.waitKey(3000)  # Show result for 1 second
+cv2.waitKey(3000000)  # Show result for 1 second
 cv2.destroyAllWindows()
 exit(0)
