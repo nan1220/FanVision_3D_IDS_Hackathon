@@ -1,17 +1,18 @@
 import numpy as np
 import cv2
 
-def rewarpping_image(image, output_site_px=500):
+def rewarpping_image(image, points=None, output_site_px=500):
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
     # --- Find red pixels (assumes you marked exactly 4 corners in red) --- 
     mask = (image[:, :, 0] == 0) & (image[:, :, 1] == 0) & (image[:, :, 2] == 255) 
-    points = np.argwhere(mask) 
-    # gives (y, x) 
-    if len(points) != 4: 
-        raise ValueError(f"Expected 4 red points, found {len(points)}") 
-    # Sort points roughly in top-left, top-right, bottom-right, bottom-left order 
-    # We'll sort by y first (top vs bottom), then x 
-    points = sorted(points, key=lambda p: (p[0], p[1])) 
+    if not points:
+        points = np.argwhere(mask) 
+        # gives (y, x) 
+        if len(points) != 4: 
+            raise ValueError(f"Expected 4 red points, found {len(points)}") 
+        # Sort points roughly in top-left, top-right, bottom-right, bottom-left order 
+        # We'll sort by y first (top vs bottom), then x 
+        points = sorted(points, key=lambda p: (p[0], p[1])) 
     top = sorted(points[:2], key=lambda p: p[1]) 
     # top-left, top-right 
     bottom = sorted(points[2:], key=lambda p: p[1]) 
