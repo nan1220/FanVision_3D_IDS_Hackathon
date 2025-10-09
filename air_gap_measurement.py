@@ -478,9 +478,11 @@ def visualize_measurements_with_outliers(white_pixel_lengths, image_height, prep
     total_whites = [data['total_white_pixels'] for data in white_pixel_lengths]
     max_consecutives = [data['max_consecutive_white'] for data in white_pixel_lengths]
     
-    # Create mm versions
+    # Create mm versions for both x and y axes
+    rows_mm = [row * scale_factor_mm_per_pixel for row in rows]
     total_whites_mm = [data['total_white_mm'] for data in white_pixel_lengths]
     max_consecutives_mm = [data['max_consecutive_white_mm'] for data in white_pixel_lengths]
+    image_height_mm = image_height * scale_factor_mm_per_pixel
     
     # Detect outliers (including minimum pixel threshold and expansion)
     outlier_info = detect_outliers(white_pixel_lengths, outlier_method=outlier_method, threshold_factor=threshold_factor, min_pixel_threshold=min_pixel_threshold, outlier_expansion=outlier_expansion)
@@ -510,120 +512,127 @@ def visualize_measurements_with_outliers(white_pixel_lengths, image_height, prep
             if seq['length'] == shortest_filtered['length']:
                 shortest_sequence_info = {
                     'row': shortest_filtered['row'],
+                    'row_mm': shortest_filtered['row'] * scale_factor_mm_per_pixel,
                     'start': seq['start'],
+                    'start_mm': seq['start'] * scale_factor_mm_per_pixel,
                     'end': seq['end'],
+                    'end_mm': seq['end'] * scale_factor_mm_per_pixel,
                     'length': seq['length'],
                     'length_mm': seq['length'] * scale_factor_mm_per_pixel
                 }
                 break
     
-    # Create subplots with additional change analysis
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(20, 16))
+    # Create subplots with additional change analysis and more spacing
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(20, 18))  # Increased height from 16 to 18
     
-    # Plot 1: Original image
-    ax1.imshow(original_image, cmap='gray')
+    # Plot 1: Original image with mm axes
+    ax1.imshow(original_image, cmap='gray', extent=[0, original_image.shape[1] * scale_factor_mm_per_pixel, 
+                                                    original_image.shape[0] * scale_factor_mm_per_pixel, 0])
     ax1.set_title('Original Image (Grayscale)')
-    ax1.set_xlabel('Width (pixels)')
-    ax1.set_ylabel('Height (pixels)')
+    ax1.set_xlabel('Width (mm)')
+    ax1.set_ylabel('Height (mm)')
     
-    # Plot 2: Preprocessed image with shortest sequence and outliers marked
-    ax2.imshow(preprocessed_image, cmap='gray')
+    # Plot 2: Preprocessed image with shortest sequence and outliers marked (mm axes)
+    ax2.imshow(preprocessed_image, cmap='gray', extent=[0, preprocessed_image.shape[1] * scale_factor_mm_per_pixel,
+                                                        preprocessed_image.shape[0] * scale_factor_mm_per_pixel, 0])
     ax2.set_title(f'Preprocessed Image with Expanded Outliers (±{outlier_expansion} rows)')
-    ax2.set_xlabel('Width (pixels)')
-    ax2.set_ylabel('Height (pixels)')
+    ax2.set_xlabel('Width (mm)')
+    ax2.set_ylabel('Height (mm)')
     
-    # Mark different types of outlier rows on the image
+    # Mark different types of outlier rows on the image (convert to mm)
     for outlier_row in min_pixel_outliers:
-        ax2.axhline(y=outlier_row, color='yellow', alpha=0.6, linewidth=2, label=f'Min pixels < {min_pixel_threshold}' if outlier_row == min_pixel_outliers[0] else "")
+        outlier_row_mm = outlier_row * scale_factor_mm_per_pixel
+        ax2.axhline(y=outlier_row_mm, color='yellow', alpha=0.6, linewidth=2, label=f'Min pixels < {min_pixel_threshold}' if outlier_row == min_pixel_outliers[0] else "")
     
     for outlier_row in change_outliers:
-        ax2.axhline(y=outlier_row, color='orange', alpha=0.7, linewidth=2, label='Row-change outlier' if outlier_row == change_outliers[0] else "")
+        outlier_row_mm = outlier_row * scale_factor_mm_per_pixel
+        ax2.axhline(y=outlier_row_mm, color='orange', alpha=0.7, linewidth=2, label='Row-change outlier' if outlier_row == change_outliers[0] else "")
     
     # Mark expanded outlier areas
     for outlier_row in expanded_outlier_rows:
-        ax2.axhline(y=outlier_row, color='lightcoral', alpha=0.3, linewidth=1, label=f'Expanded outliers (±{outlier_expansion})' if outlier_row == expanded_outlier_rows[0] else "")
+        outlier_row_mm = outlier_row * scale_factor_mm_per_pixel
+        ax2.axhline(y=outlier_row_mm, color='lightcoral', alpha=0.3, linewidth=1, label=f'Expanded outliers (±{outlier_expansion})' if outlier_row == expanded_outlier_rows[0] else "")
     
-    # Mark the shortest sequence (excluding all outliers)
+    # Mark the shortest sequence (excluding all outliers) - convert to mm
     if shortest_sequence_info:
-        row = shortest_sequence_info['row']
-        start = shortest_sequence_info['start']
-        end = shortest_sequence_info['end']
+        row_mm = shortest_sequence_info['row_mm']
+        start_mm = shortest_sequence_info['start_mm']
+        end_mm = shortest_sequence_info['end_mm']
+        width_mm = end_mm - start_mm
         
-        rect = plt.Rectangle((start, row-1), end-start+1, 3, 
+        rect = plt.Rectangle((start_mm, row_mm - 1.5 * scale_factor_mm_per_pixel), width_mm, 3 * scale_factor_mm_per_pixel, 
                            fill=False, edgecolor='red', linewidth=3)
         ax2.add_patch(rect)
         
-        ax2.annotate(f'Shortest (filtered): {shortest_sequence_info["length"]} px ({shortest_sequence_info["length_mm"]:.2f} mm)', 
-                    xy=(start, row), xytext=(start, row-30),
+        ax2.annotate(f'Shortest (filtered): {shortest_sequence_info["length_mm"]:.2f} mm', 
+                    xy=(start_mm, row_mm), xytext=(start_mm, row_mm - 6 * scale_factor_mm_per_pixel),
                     arrowprops=dict(arrowstyle='->', color='red'),
                     color='red', fontweight='bold')
     
     if outlier_rows:
         ax2.legend()
     
-    # Plot 3: Max consecutive white pixels with all outliers highlighted (dual axis for mm)
-    ax3.plot(max_consecutives, rows, 'b-', linewidth=1, alpha=0.7, label='All data')
-    
-    # Create secondary x-axis for mm
-    ax3_mm = ax3.twiny()
-    ax3_mm.plot(max_consecutives_mm, rows, 'b-', linewidth=1, alpha=0.0)  # Invisible line for scaling
+    # Plot 3: Max consecutive white pixels with all outliers highlighted (mm axes)
+    ax3.plot(max_consecutives_mm, rows_mm, 'b-', linewidth=1, alpha=0.7, label='All data')
     
     # Highlight different types of outliers
     if min_pixel_outliers:
-        min_pixel_consecutives = [max_consecutives[i] for i in min_pixel_outliers]
-        min_pixel_row_nums = [rows[i] for i in min_pixel_outliers]
-        ax3.scatter(min_pixel_consecutives, min_pixel_row_nums, color='yellow', s=50, alpha=0.8, label=f'Min pixels < {min_pixel_threshold}', zorder=6)
+        min_pixel_consecutives_mm = [max_consecutives_mm[i] for i in min_pixel_outliers]
+        min_pixel_row_nums_mm = [rows_mm[i] for i in min_pixel_outliers]
+        ax3.scatter(min_pixel_consecutives_mm, min_pixel_row_nums_mm, color='yellow', s=50, alpha=0.8, label=f'Min pixels < {min_pixel_threshold * scale_factor_mm_per_pixel:.1f} mm', zorder=6)
     
     if change_outliers:
-        change_consecutives = [max_consecutives[i] for i in change_outliers]
-        change_row_nums = [rows[i] for i in change_outliers]
-        ax3.scatter(change_consecutives, change_row_nums, color='orange', s=60, alpha=0.8, label='Row-change outliers', zorder=6)
+        change_consecutives_mm = [max_consecutives_mm[i] for i in change_outliers]
+        change_row_nums_mm = [rows_mm[i] for i in change_outliers]
+        ax3.scatter(change_consecutives_mm, change_row_nums_mm, color='orange', s=60, alpha=0.8, label='Row-change outliers', zorder=6)
     
     # Highlight expanded outliers
     if expanded_outlier_rows:
-        expanded_consecutives = [max_consecutives[i] for i in expanded_outlier_rows]
-        expanded_row_nums = [rows[i] for i in expanded_outlier_rows]
-        ax3.scatter(expanded_consecutives, expanded_row_nums, color='lightcoral', s=20, alpha=0.6, label=f'Expanded outliers (±{outlier_expansion})', zorder=5)
+        expanded_consecutives_mm = [max_consecutives_mm[i] for i in expanded_outlier_rows]
+        expanded_row_nums_mm = [rows_mm[i] for i in expanded_outlier_rows]
+        ax3.scatter(expanded_consecutives_mm, expanded_row_nums_mm, color='lightcoral', s=20, alpha=0.6, label=f'Expanded outliers (±{outlier_expansion})', zorder=5)
     
-    # Add threshold line
-    ax3.axvline(x=min_pixel_threshold, color='red', linestyle=':', alpha=0.7, label=f'Min threshold: {min_pixel_threshold} px')
+    # Add threshold line in mm
+    min_threshold_mm = min_pixel_threshold * scale_factor_mm_per_pixel
+    ax3.axvline(x=min_threshold_mm, color='red', linestyle=':', alpha=0.7, label=f'Min threshold: {min_threshold_mm:.1f} mm')
     
-    ax3.set_xlabel('Max Consecutive White Pixels')
-    ax3_mm.set_xlabel('Max Consecutive White (mm)')
-    ax3.set_ylabel('Row (Height)')
+    ax3.set_xlabel('Max Consecutive White (mm)')
+    ax3.set_ylabel('Height (mm)')
     ax3.set_title(f'Consecutive White Pixels (Scale: {scale_factor_mm_per_pixel} mm/px)')
     ax3.invert_yaxis()
     ax3.grid(True, alpha=0.3)
-    ax3.set_ylim([image_height, 0])
+    ax3.set_ylim([image_height_mm, 0])
     ax3.legend()
     
-    # Plot 4: Row-to-row changes in mm
+    # Plot 4: Row-to-row changes in mm (both axes in mm)
     changes_mm = []
-    change_rows = []
+    change_rows_mm = []
     for i in range(1, len(max_consecutives)):
         change_px = max_consecutives[i] - max_consecutives[i-1]
         change_mm = change_px * scale_factor_mm_per_pixel
         changes_mm.append(change_mm)
-        change_rows.append(rows[i])
+        change_rows_mm.append(rows_mm[i])
     
-    ax4.plot(changes_mm, change_rows, 'g-', linewidth=1, alpha=0.7, label='Row-to-row change (mm)')
+    ax4.plot(changes_mm, change_rows_mm, 'g-', linewidth=1, alpha=0.7, label='Row-to-row change')
     ax4.axvline(x=0, color='black', linestyle='--', alpha=0.5)
     
     # Highlight outlier changes
     initial_change_outlier_changes_mm = [changes_mm[i-1] for i in initial_outlier_rows if i-1 < len(changes_mm) and i > 0]
-    initial_change_outlier_rows = [rows[i] for i in initial_outlier_rows if i-1 < len(changes_mm) and i > 0]
-    ax4.scatter(initial_change_outlier_changes_mm, initial_change_outlier_rows, color='orange', s=50, alpha=0.8, label='Initial outlier changes', zorder=5)
+    initial_change_outlier_rows_mm = [rows_mm[i] for i in initial_outlier_rows if i-1 < len(changes_mm) and i > 0]
+    ax4.scatter(initial_change_outlier_changes_mm, initial_change_outlier_rows_mm, color='orange', s=50, alpha=0.8, label='Initial outlier changes', zorder=5)
     
     ax4.set_xlabel('Change in White Pixels (mm)')
-    ax4.set_ylabel('Row (Height)')
-    ax4.set_title(f'Row-to-Row Changes in mm (Expansion: ±{outlier_expansion} rows)')
+    ax4.set_ylabel('Height (mm)')
+    ax4.set_title(f'Row-to-Row Changes (Expansion: ±{outlier_expansion} rows)')
     ax4.invert_yaxis()
     ax4.grid(True, alpha=0.3)
-    ax4.set_ylim([image_height, 0])
+    ax4.set_ylim([image_height_mm, 0])
     ax4.legend()
     
-    plt.tight_layout()
-    plt.suptitle(f'Air Gap Measurement ({len(outlier_rows)} outliers, Scale: {scale_factor_mm_per_pixel} mm/px)', y=0.98, fontsize=16)
+    # Adjust spacing between subplots - this is the key change
+    plt.subplots_adjust(hspace=0.35, wspace=0.25)  # Increased hspace from default (~0.2) to 0.35
+    
+    plt.suptitle(f'Air Gap Measurement ({len(outlier_rows)} outliers, Scale: {scale_factor_mm_per_pixel} mm/px)', y=0.95, fontsize=16)  # Adjusted y position from 0.98 to 0.95
     plt.show()
     
     # Print detailed results with mm values
@@ -662,9 +671,9 @@ def visualize_measurements_with_outliers(white_pixel_lengths, image_height, prep
         print("AIR GAP MEASUREMENT RESULT")
         print("="*60)
         print(f"Shortest white sequence (all outliers filtered):")
-        print(f"Row: {shortest_sequence_info['row']}")
-        print(f"Start column: {shortest_sequence_info['start']}")
-        print(f"End column: {shortest_sequence_info['end']}")
+        print(f"Row: {shortest_sequence_info['row']} ({shortest_sequence_info['row_mm']:.2f} mm height)")
+        print(f"Start column: {shortest_sequence_info['start']} ({shortest_sequence_info['start_mm']:.2f} mm)")
+        print(f"End column: {shortest_sequence_info['end']} ({shortest_sequence_info['end_mm']:.2f} mm)")
         print(f"Length: {shortest_sequence_info['length']} pixels")
         print(f"AIR GAP: {shortest_sequence_info['length_mm']:.3f} mm")
         print("="*60)
