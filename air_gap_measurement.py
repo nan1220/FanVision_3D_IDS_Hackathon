@@ -28,7 +28,7 @@ def preprocess_image(gray_image, white_threshold=200, black_threshold=50):
     
     return preprocessed
 
-def measure_white_pixels_per_row(image_path, white_threshold=200, black_threshold=50):
+def measure_white_pixels_per_row(image_path, white_threshold=200, black_threshold=50, scale_factor_mm_per_pixel=0.2):
     """
     Measure the length of white pixels in each row of an image.
     
@@ -36,9 +36,10 @@ def measure_white_pixels_per_row(image_path, white_threshold=200, black_threshol
         image_path (str): Path to the image file
         white_threshold (int): Threshold value to consider a pixel as white (0-255)
         black_threshold (int): Threshold value to consider a pixel as black (0-255)
+        scale_factor_mm_per_pixel (float): Scale factor to convert pixels to mm
     
     Returns:
-        tuple: (white_pixel_lengths, image_height, image_width, original_gray, preprocessed_gray)
+        tuple: (white_pixel_lengths, image_height, image_width, original_gray, preprocessed_gray, scale_factor)
     """
     # Load the image
     image = cv2.imread(image_path)
@@ -91,10 +92,14 @@ def measure_white_pixels_per_row(image_path, white_threshold=200, black_threshol
             'row': row,
             'total_white_pixels': total_white,
             'max_consecutive_white': max_consecutive,
-            'all_consecutive_sequences': consecutive_lengths
+            'all_consecutive_sequences': consecutive_lengths,
+            # Add scaled measurements in mm
+            'total_white_mm': total_white * scale_factor_mm_per_pixel,
+            'max_consecutive_white_mm': max_consecutive * scale_factor_mm_per_pixel,
+            'all_consecutive_sequences_mm': [length * scale_factor_mm_per_pixel for length in consecutive_lengths]
         })
     
-    return white_pixel_lengths, height, width, gray, preprocessed_gray
+    return white_pixel_lengths, height, width, gray, preprocessed_gray, scale_factor_mm_per_pixel
 
 def find_longest_white_sequence(white_pixel_lengths):
     """
@@ -465,13 +470,17 @@ def find_shortest_sequence_filtered(white_pixel_lengths, outlier_info):
         'length': shortest_overall
     }
 
-def visualize_measurements_with_outliers(white_pixel_lengths, image_height, preprocessed_image, original_image, outlier_method='row_change', threshold_factor=0.5, min_pixel_threshold=10, outlier_expansion=5):
+def visualize_measurements_with_outliers(white_pixel_lengths, image_height, preprocessed_image, original_image, scale_factor_mm_per_pixel=0.2, outlier_method='row_change', threshold_factor=0.5, min_pixel_threshold=10, outlier_expansion=5):
     """
-    Create visualizations highlighting outliers and showing filtered shortest sequence.
+    Create visualizations highlighting outliers and showing filtered shortest sequence with mm scaling.
     """
     rows = [data['row'] for data in white_pixel_lengths]
     total_whites = [data['total_white_pixels'] for data in white_pixel_lengths]
     max_consecutives = [data['max_consecutive_white'] for data in white_pixel_lengths]
+    
+    # Create mm versions
+    total_whites_mm = [data['total_white_mm'] for data in white_pixel_lengths]
+    max_consecutives_mm = [data['max_consecutive_white_mm'] for data in white_pixel_lengths]
     
     # Detect outliers (including minimum pixel threshold and expansion)
     outlier_info = detect_outliers(white_pixel_lengths, outlier_method=outlier_method, threshold_factor=threshold_factor, min_pixel_threshold=min_pixel_threshold, outlier_expansion=outlier_expansion)
@@ -503,7 +512,8 @@ def visualize_measurements_with_outliers(white_pixel_lengths, image_height, prep
                     'row': shortest_filtered['row'],
                     'start': seq['start'],
                     'end': seq['end'],
-                    'length': seq['length']
+                    'length': seq['length'],
+                    'length_mm': seq['length'] * scale_factor_mm_per_pixel
                 }
                 break
     
@@ -543,7 +553,7 @@ def visualize_measurements_with_outliers(white_pixel_lengths, image_height, prep
                            fill=False, edgecolor='red', linewidth=3)
         ax2.add_patch(rect)
         
-        ax2.annotate(f'Shortest (filtered): {shortest_sequence_info["length"]} pixels', 
+        ax2.annotate(f'Shortest (filtered): {shortest_sequence_info["length"]} px ({shortest_sequence_info["length_mm"]:.2f} mm)', 
                     xy=(start, row), xytext=(start, row-30),
                     arrowprops=dict(arrowstyle='->', color='red'),
                     color='red', fontweight='bold')
@@ -551,8 +561,12 @@ def visualize_measurements_with_outliers(white_pixel_lengths, image_height, prep
     if outlier_rows:
         ax2.legend()
     
-    # Plot 3: Max consecutive white pixels with all outliers highlighted
+    # Plot 3: Max consecutive white pixels with all outliers highlighted (dual axis for mm)
     ax3.plot(max_consecutives, rows, 'b-', linewidth=1, alpha=0.7, label='All data')
+    
+    # Create secondary x-axis for mm
+    ax3_mm = ax3.twiny()
+    ax3_mm.plot(max_consecutives_mm, rows, 'b-', linewidth=1, alpha=0.0)  # Invisible line for scaling
     
     # Highlight different types of outliers
     if min_pixel_outliers:
@@ -572,49 +586,52 @@ def visualize_measurements_with_outliers(white_pixel_lengths, image_height, prep
         ax3.scatter(expanded_consecutives, expanded_row_nums, color='lightcoral', s=20, alpha=0.6, label=f'Expanded outliers (±{outlier_expansion})', zorder=5)
     
     # Add threshold line
-    ax3.axvline(x=min_pixel_threshold, color='red', linestyle=':', alpha=0.7, label=f'Min threshold: {min_pixel_threshold}')
+    ax3.axvline(x=min_pixel_threshold, color='red', linestyle=':', alpha=0.7, label=f'Min threshold: {min_pixel_threshold} px')
     
     ax3.set_xlabel('Max Consecutive White Pixels')
+    ax3_mm.set_xlabel('Max Consecutive White (mm)')
     ax3.set_ylabel('Row (Height)')
-    ax3.set_title(f'Consecutive White Pixels (Expanded Outlier Detection)')
+    ax3.set_title(f'Consecutive White Pixels (Scale: {scale_factor_mm_per_pixel} mm/px)')
     ax3.invert_yaxis()
     ax3.grid(True, alpha=0.3)
     ax3.set_ylim([image_height, 0])
     ax3.legend()
     
-    # Plot 4: Row-to-row changes
-    changes = []
+    # Plot 4: Row-to-row changes in mm
+    changes_mm = []
     change_rows = []
     for i in range(1, len(max_consecutives)):
-        change = max_consecutives[i] - max_consecutives[i-1]
-        changes.append(change)
+        change_px = max_consecutives[i] - max_consecutives[i-1]
+        change_mm = change_px * scale_factor_mm_per_pixel
+        changes_mm.append(change_mm)
         change_rows.append(rows[i])
     
-    ax4.plot(changes, change_rows, 'g-', linewidth=1, alpha=0.7, label='Row-to-row change')
+    ax4.plot(changes_mm, change_rows, 'g-', linewidth=1, alpha=0.7, label='Row-to-row change (mm)')
     ax4.axvline(x=0, color='black', linestyle='--', alpha=0.5)
     
     # Highlight outlier changes
-    initial_change_outlier_changes = [changes[i-1] for i in initial_outlier_rows if i-1 < len(changes) and i > 0]
-    initial_change_outlier_rows = [rows[i] for i in initial_outlier_rows if i-1 < len(changes) and i > 0]
-    ax4.scatter(initial_change_outlier_changes, initial_change_outlier_rows, color='orange', s=50, alpha=0.8, label='Initial outlier changes', zorder=5)
+    initial_change_outlier_changes_mm = [changes_mm[i-1] for i in initial_outlier_rows if i-1 < len(changes_mm) and i > 0]
+    initial_change_outlier_rows = [rows[i] for i in initial_outlier_rows if i-1 < len(changes_mm) and i > 0]
+    ax4.scatter(initial_change_outlier_changes_mm, initial_change_outlier_rows, color='orange', s=50, alpha=0.8, label='Initial outlier changes', zorder=5)
     
-    ax4.set_xlabel('Change in White Pixels (current - previous)')
+    ax4.set_xlabel('Change in White Pixels (mm)')
     ax4.set_ylabel('Row (Height)')
-    ax4.set_title(f'Row-to-Row Changes (Expansion: ±{outlier_expansion} rows)')
+    ax4.set_title(f'Row-to-Row Changes in mm (Expansion: ±{outlier_expansion} rows)')
     ax4.invert_yaxis()
     ax4.grid(True, alpha=0.3)
     ax4.set_ylim([image_height, 0])
     ax4.legend()
     
     plt.tight_layout()
-    plt.suptitle(f'Expanded Outlier Detection ({len(outlier_rows)} total: {len(initial_outlier_rows)} initial + {len(expanded_outlier_rows)} expanded)', y=0.98, fontsize=16)
+    plt.suptitle(f'Air Gap Measurement ({len(outlier_rows)} outliers, Scale: {scale_factor_mm_per_pixel} mm/px)', y=0.98, fontsize=16)
     plt.show()
     
-    # Print detailed results
+    # Print detailed results with mm values
     print(f"\nExpanded Outlier Detection Results:")
     print(f"Method: {outlier_method}")
+    print(f"Scale factor: {scale_factor_mm_per_pixel} mm/pixel")
     print(f"Threshold factor: {threshold_factor}")
-    print(f"Minimum pixel threshold: {min_pixel_threshold}")
+    print(f"Minimum pixel threshold: {min_pixel_threshold} pixels ({min_pixel_threshold * scale_factor_mm_per_pixel:.2f} mm)")
     print(f"Outlier expansion: ±{outlier_expansion} rows")
     print(f"Initial outliers detected: {len(initial_outlier_rows)}")
     print(f"Expanded outliers added: {len(expanded_outlier_rows)}")
@@ -622,12 +639,13 @@ def visualize_measurements_with_outliers(white_pixel_lengths, image_height, prep
     print(f"Min-pixel outliers: {len(min_pixel_outliers)} rows")
     print(f"Row-change outliers: {len(change_outliers)} rows")
     
-    # Show details of different types of outliers
+    # Show details of different types of outliers with mm values
     if min_pixel_outliers:
-        print(f"\nMin-pixel outliers (< {min_pixel_threshold} pixels):")
+        print(f"\nMin-pixel outliers (< {min_pixel_threshold} pixels / {min_pixel_threshold * scale_factor_mm_per_pixel:.2f} mm):")
         for outlier_row in min_pixel_outliers[:10]:  # Show first 10
             pixels = max_consecutives[outlier_row]
-            print(f"Row {outlier_row}: {pixels} pixels")
+            mm_value = pixels * scale_factor_mm_per_pixel
+            print(f"Row {outlier_row}: {pixels} pixels ({mm_value:.2f} mm)")
     
     if change_outliers:
         print(f"\nRow-change outliers:")
@@ -635,42 +653,55 @@ def visualize_measurements_with_outliers(white_pixel_lengths, image_height, prep
             if outlier_row > 0 and outlier_row < len(max_consecutives):
                 prev_val = max_consecutives[outlier_row-1]
                 curr_val = max_consecutives[outlier_row]
-                change = curr_val - prev_val
-                print(f"Row {outlier_row}: {prev_val} → {curr_val} (change: {change:+d})")
+                change_px = curr_val - prev_val
+                change_mm = change_px * scale_factor_mm_per_pixel
+                print(f"Row {outlier_row}: {prev_val} → {curr_val} pixels (change: {change_px:+d} px / {change_mm:+.2f} mm)")
     
     if shortest_sequence_info:
-        print(f"\nShortest white sequence (all outliers filtered):")
+        print(f"\n" + "="*60)
+        print("AIR GAP MEASUREMENT RESULT")
+        print("="*60)
+        print(f"Shortest white sequence (all outliers filtered):")
         print(f"Row: {shortest_sequence_info['row']}")
         print(f"Start column: {shortest_sequence_info['start']}")
         print(f"End column: {shortest_sequence_info['end']}")
         print(f"Length: {shortest_sequence_info['length']} pixels")
+        print(f"AIR GAP: {shortest_sequence_info['length_mm']:.3f} mm")
+        print("="*60)
     
     return outlier_info, shortest_sequence_info
 
 def main():
-    # Example usage
+    # Example usage with scaling
     image_path = "image_54.png"  # Change this to your image path
+    scale_factor_mm_per_pixel = 0.2  # Default scale factor: 0.2 mm per pixel
     
     try:
-        # Measure white pixels
-        measurements, height, width, original_gray, preprocessed_gray = measure_white_pixels_per_row(image_path)
+        # Measure white pixels with scaling
+        measurements, height, width, original_gray, preprocessed_gray, scale_factor = measure_white_pixels_per_row(
+            image_path, scale_factor_mm_per_pixel=scale_factor_mm_per_pixel)
         
-        print(f"Image dimensions: {width} x {height}")
+        print(f"Image dimensions: {width} x {height} pixels")
+        print(f"Scale factor: {scale_factor} mm/pixel")
+        print(f"Image size: {width * scale_factor:.2f} x {height * scale_factor:.2f} mm")
         print(f"Analyzed {len(measurements)} rows")
         
-        # Display statistics
+        # Display statistics with mm values
         total_whites = [data['total_white_pixels'] for data in measurements]
         max_consecutives = [data['max_consecutive_white'] for data in measurements]
+        max_consecutives_mm = [data['max_consecutive_white_mm'] for data in measurements]
         non_zero_consecutives = [x for x in max_consecutives if x > 0]
+        non_zero_consecutives_mm = [x * scale_factor for x in non_zero_consecutives]
         
         print(f"\nStatistics (before outlier filtering):")
         print(f"Rows with white pixels: {len(non_zero_consecutives)}")
-        print(f"Shortest consecutive white pixels: {min(non_zero_consecutives) if non_zero_consecutives else 0}")
-        print(f"Longest consecutive white pixels: {max(max_consecutives)}")
+        print(f"Shortest consecutive white pixels: {min(non_zero_consecutives) if non_zero_consecutives else 0} px ({min(non_zero_consecutives_mm) if non_zero_consecutives_mm else 0:.3f} mm)")
+        print(f"Longest consecutive white pixels: {max(max_consecutives)} px ({max(max_consecutives_mm):.3f} mm)")
         
-        # Visualize with expanded outlier detection (row-change + minimum pixels + expansion)
+        # Visualize with expanded outlier detection and mm scaling
         outlier_info, shortest_info = visualize_measurements_with_outliers(
             measurements, height, preprocessed_gray, original_gray, 
+            scale_factor_mm_per_pixel=scale_factor,
             outlier_method='row_change', threshold_factor=0.3, min_pixel_threshold=10, outlier_expansion=5)
         
         return measurements, outlier_info
