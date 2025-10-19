@@ -4,8 +4,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 ROOT_PATH = Path(__file__).parent.resolve().absolute()
-IMAGE_PATH = ROOT_PATH / "others/image4.jpg"  # Pfad zum Bild anpassen
-PERFECT_CAMERA = False   # True: nur 2-Punkt-Kalibrierung, False: Perspektivtransformation mit 4 Punkten
+IMAGE_PATH = ROOT_PATH / "others/image4.jpg"  # Adjust path to image
+PERFECT_CAMERA = False   # True: only 2-point calibration, False: perspective transformation with 4 points
 
 # Select two points in the image whose real-world distance you know.
 def select_points_and_calculate_angle(img):
@@ -92,83 +92,83 @@ def rewarpping_image(pts_src, pts_dst, image, output_site_px=500):
 
 img = cv2.imread(IMAGE_PATH)
 if img is None:
-    print(f"Fehler: Bild '{IMAGE_PATH}' konnte nicht geladen werden.")
+    print(f"Error: Image '{IMAGE_PATH}' could not be loaded.")
     exit(1)
-# Bild verkleinern
+# Resize image
 resize_factor = 0.2
 img = cv2.resize(img, (0, 0), fx=resize_factor, fy=resize_factor)
 
 if PERFECT_CAMERA:
-    # Nur 2-Punkt-Kalibrierung, keine Entzerrung
+    # Only 2-point calibration, no rectification
     scale, angle_deg, ref_points = select_points_and_calculate_angle(img)
 else:
-    # Perspektivtransformation mit 4 Punkten
+    # Perspective transformation with 4 points
     img, real_width, real_height = perspective_transform_from_points(img)
     scale, angle_deg, ref_points = select_points_and_calculate_angle(img)
 
-# Entferne die Kontur-Erkennung und das Zeichnen
+# Remove contour detection and drawing
 img_contour = img.copy()
 
-# Interaktive Auswahl von zwei Punkten und Anzeige der Distanz in mm
-print("Wähle zwei beliebige Punkte im Bild aus, um die Distanz zu messen (alle Angaben in mm).")
+# Interactive selection of two points and display of distance in mm
+print("Select any two points in the image to measure the distance (all measurements in mm).")
 selected_points = []
 def mouse_callback(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
-        # Umrechnung der Pixelkoordinaten in mm
+        # Convert pixel coordinates to mm
         x_mm = x * scale
         y_mm = y * scale
         selected_points.append((x_mm, y_mm))
-        # Markierung im Bild (optional, weiterhin an Pixelposition)
+        # Marking in the image (optional, still at pixel position)
         cv2.circle(img_contour, (x, y), 7, (0, 0, 255), -1)
-        cv2.imshow('Distanz messen', img_contour)
+        cv2.imshow('Measure Distance', img_contour)
 
 img_temp = img_contour.copy()
-cv2.imshow('Distanz messen', img_temp)
-cv2.setMouseCallback('Distanz messen', mouse_callback)
+cv2.imshow('Measure Distance', img_temp)
+cv2.setMouseCallback('Measure Distance', mouse_callback)
 while len(selected_points) < 2:
     cv2.waitKey(1)
 cv2.destroyAllWindows()
 
-# Distanz berechnen und anzeigen (in mm)
+# Calculate and display distance (in mm)
 p1 = np.array(selected_points[0])
 p2 = np.array(selected_points[1])
 dist_mm = np.linalg.norm(p1 - p2)
-print(f"Distanz zwischen den gewählten Punkten: {dist_mm:.2f} mm")
+print(f"Distance between the selected points: {dist_mm:.2f} mm")
 
-# Linie und Text einzeichnen (weiterhin auf Pixelbasis, aber Text in mm)
+# Draw line and text (still at pixel basis, but text in mm)
 pixel_p1 = (int(p1[0]/scale), int(p1[1]/scale))
 pixel_p2 = (int(p2[0]/scale), int(p2[1]/scale))
 cv2.line(img_contour, pixel_p1, pixel_p2, (0,0,255), 2)
 cv2.putText(img_contour, f"{dist_mm:.1f} mm", ((pixel_p1[0]+pixel_p2[0])//2, (pixel_p1[1]+pixel_p2[1])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
-cv2.imshow('Gemessene Distanz', img_contour)
+cv2.imshow('Measured Distance', img_contour)
 cv2.waitKey(3000)
 cv2.destroyAllWindows()
 
-# Interaktive Auswahl für Wandabstände
-for wand_name in ["linken Wand", "rechten Wand"]:
-    print(f"Wähle zwei Punkte für die Distanz zur {wand_name}.")
-    wand_points = []
-    def wand_callback(event, x, y, flags, param):
+# Interactive selection for wall distances
+for wall_name in ["left wall", "right wall"]:
+    print(f"Select two points for the distance to the {wall_name}.")
+    wall_points = []
+    def wall_callback(event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
             x_mm = x * scale
             y_mm = y * scale
-            wand_points.append((x_mm, y_mm))
+            wall_points.append((x_mm, y_mm))
             cv2.circle(img_contour, (x, y), 7, (0, 255, 0), -1)
-            cv2.imshow(f'Distanz zur {wand_name}', img_contour)
+            cv2.imshow(f'Measure Distance to {wall_name}', img_contour)
     img_temp = img_contour.copy()
-    cv2.imshow(f'Distanz zur {wand_name}', img_temp)
-    cv2.setMouseCallback(f'Distanz zur {wand_name}', wand_callback)
-    while len(wand_points) < 2:
+    cv2.imshow(f'Measure Distance to {wall_name}', img_temp)
+    cv2.setMouseCallback(f'Measure Distance to {wall_name}', wall_callback)
+    while len(wall_points) < 2:
         cv2.waitKey(1)
     cv2.destroyAllWindows()
-    wp1 = np.array(wand_points[0])
-    wp2 = np.array(wand_points[1])
-    wand_dist_mm = np.linalg.norm(wp1 - wp2)
-    print(f"Distanz zur {wand_name}: {wand_dist_mm:.2f} mm")
+    wp1 = np.array(wall_points[0])
+    wp2 = np.array(wall_points[1])
+    wall_dist_mm = np.linalg.norm(wp1 - wp2)
+    print(f"Distance to {wall_name}: {wall_dist_mm:.2f} mm")
     pixel_wp1 = (int(wp1[0]/scale), int(wp1[1]/scale))
     pixel_wp2 = (int(wp2[0]/scale), int(wp2[1]/scale))
     cv2.line(img_contour, pixel_wp1, pixel_wp2, (0,255,0), 2)
-    cv2.putText(img_contour, f"{wand_dist_mm:.1f} mm", ((pixel_wp1[0]+pixel_wp2[0])//2, (pixel_wp1[1]+pixel_wp2[1])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
-    cv2.imshow('Gemessene Wand-Distanzen', img_contour)
+    cv2.putText(img_contour, f"{wall_dist_mm:.1f} mm", ((pixel_wp1[0]+pixel_wp2[0])//2, (pixel_wp1[1]+pixel_wp2[1])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
+    cv2.imshow('Measured wall distances', img_contour)
     cv2.waitKey(1000)
     cv2.destroyAllWindows()

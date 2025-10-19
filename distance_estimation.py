@@ -1,20 +1,20 @@
 import cv2
 import numpy as np
 
-# Abstand von Kamera zu Objekt (Referenzbild) in cm
+# Distance from camera to object (reference image) in cm
 KNOWN_DISTANCE = 76.2
-# Breite des Gesichts im echten Leben in cm
+# Width of the face in real life in cm
 KNOWN_WIDTH = 14.3
 
-# Farben
+# Colors
 GREEN = (0, 255, 0)
 RED = (0, 0, 255)
 BLACK = (0, 0, 0)
 
-# Schriftart
+# Font
 fonts = cv2.FONT_HERSHEY_COMPLEX
 
-# Gesichtserkennung
+# Face detection
 face_detector = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
 
 def Focal_Length_Finder(measured_distance, real_width, width_in_rf_image):
@@ -32,16 +32,16 @@ def face_data(image):
         face_width = w
     return face_width
 
-# Referenzbild laden
+# Reference image loading
 ref_image = cv2.imread("Ref_image.png")
 ref_image_face_width = face_data(ref_image)
 
-# Brennweite berechnen
+# Focal length calculation
 Focal_length_found = Focal_Length_Finder(KNOWN_DISTANCE, KNOWN_WIDTH, ref_image_face_width)
 print(f"Focal Length: {Focal_length_found}")
 cv2.imshow("ref_image", ref_image)
 
-# Bild für die Distanzmessung laden
+# Load image for distance measurement
 input_image = cv2.imread("input_image.png")
 if input_image is None:
     print("Fehler: Bild 'input_image.png' konnte nicht geladen werden.")
@@ -60,7 +60,7 @@ cv2.imshow("Distance Estimation", input_image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
-# Kamera starten
+# Camera starting
 cap = cv2.VideoCapture(0)
 while True:
     ret, frame = cap.read()
