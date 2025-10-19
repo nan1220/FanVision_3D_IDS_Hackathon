@@ -1,8 +1,10 @@
 import cv2
 import numpy as np
+from pathlib import Path
 import matplotlib.pyplot as plt
 
-IMAGE_PATH = "fan_axial_big.png"  # Pfad zum Bild anpassen
+ROOT_PATH = Path(__file__).parent.resolve().absolute()
+IMAGE_PATH = ROOT_PATH / "others/image4.jpg"  # Pfad zum Bild anpassen
 PERFECT_CAMERA = False   # True: nur 2-Punkt-Kalibrierung, False: Perspektivtransformation mit 4 Punkten
 
 # Select two points in the image whose real-world distance you know.
