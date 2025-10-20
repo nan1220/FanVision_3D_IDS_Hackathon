@@ -25,11 +25,37 @@ It helps ensure **optimal installation distance** for airflow efficiency and saf
 ### 1. Data Acquisition
 Capture the photos of the ventilator and its surroundings using a 3D camera (from the company, usually it takes some time on delivery) or mobile device (for the convenience for the customers).
 
-### 2. Preprocessing
-#### Edge Detection and Enhancement
+### 2. Preprocessing(Image Skewing)
+
+To correct perspective distortion and obtain a front-facing (rectangle) view of the ventilator, a homography-based perspective transformation was applied.
+
+#### Input: Original image with imperfectly aligned ventilator frame.
+
+#### Process:
+
+Use interactive point selection to mark the four corners of the ventilator frame.
+
+Define the coordinates of the selected corner points in the input image.
+
+Define corresponding destination points forming a perfect rectangle.
+
+Compute the homography matrix using `cv2.getPerspectiveTransform()`.
+
+Apply the transformation with `cv2.warpPerspective()` to produce a rectified image.
+
+#### Output: 
+The ventilator frame becomes a perfect rectangle, reducing geometric distortion and enabling more accurate edge and shape detection in later steps.
+
+#### Example:
+> ❗ **Note again:** this is not the photo we used during Hackathon, but a similar one for demonstration purposes
 
 
-#### Image Skewing
+| Input:Original Image(impefectly aligned)| Output: Warped (rectified) image |
+| ----------- | ----------- |
+| ![Image](https://github.com/user-attachments/assets/8c1e25c2-a5a2-4587-8ad6-5028f7ba3e5f)| ![Image](https://github.com/user-attachments/assets/6e9b8e08-2342-4ed4-91bf-424b6129903c)
+
+
+
 
 
 
@@ -37,26 +63,30 @@ Capture the photos of the ventilator and its surroundings using a 3D camera (fro
 ### 3. Object Detection
 - Detect fan blades and ventilator frames using:
   - **Hough Circle Transform** for circular blades
+
+  for example:
+  <img width="431" height="388" alt="Image" src="https://github.com/user-attachments/assets/2f410121-abde-47d1-988f-674cc72ecc40" />
   - **Contour and edge analysis** for rectangular ventilator frames
 - Label detected objects with bounding boxes or contours.
 
 ### 4. Depth & Distance Estimation
 #### For skewed images:
-we would first use the image preprocessing and output the image. Then we would the preprocessed image to find the four corners of the skewed image. After that, we would use the four corners to calculate the homography matrix and then use the homography matrix to warp the image to a top-down view. Finally, we would use the warped image to measure the distance between the fan blades and the ventilator frame.
+we would first use the image preprocessing and skew the image to make the lines percfectly aligned, then estimate the dimensions of the surroundings based on the skewed image and known data, e.g., width and height of the ventilator frame, diameter of the fan blades, etc.
 
+##### Example of estimating dimensions from skewed image:
+<img width="1156" height="1174" alt="Image" src="https://github.com/user-attachments/assets/525bd767-a3b3-4d6e-a8d5-cf17d5386c7d" />
+
+(there is less than 1cm error.)
 
 #### For perfectly aligned images:
 We don't need to skew the image. We can directly use the perfectly aligned image to estimate the dimensions of the surroundings.
 
 
-### Here is an example:
-
-#### Original Image(impefectly aligned):
-![Image](https://github.com/user-attachments/assets/8c1e25c2-a5a2-4587-8ad6-5028f7ba3e5f)
+### Here is an example by video demonstration:
 
 
-#### After Preprocessing:
-<img width="1156" height="1174" alt="Image" src="https://github.com/user-attachments/assets/525bd767-a3b3-4d6e-a8d5-cf17d5386c7d" />
+
+
 
 > ❗ **Note again:** the above image is not the initial image we used during Hackathon, but a similar one for demonstration purposes.
 
