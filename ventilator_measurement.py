@@ -4,7 +4,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 ROOT_PATH = Path(__file__).parent.resolve().absolute()
-IMAGE_PATH = ROOT_PATH / "others/image4.jpg"  # Adjust path to image
+# Adjust path to image as needed
+# IMAGE_PATH = ROOT_PATH / "test images(from google)/ventilator-with-fan-window.jpg"  
+IMAGE_PATH = ROOT_PATH / "test images(from google)/bathroom-fan-installation.jpg"
+
+
 PERFECT_CAMERA = False   # True: only 2-point calibration, False: perspective transformation with 4 points
 
 # Select two points in the image whose real-world distance you know.
@@ -170,5 +174,5 @@ for wall_name in ["left wall", "right wall"]:
     cv2.line(img_contour, pixel_wp1, pixel_wp2, (0,255,0), 2)
     cv2.putText(img_contour, f"{wall_dist_mm:.1f} mm", ((pixel_wp1[0]+pixel_wp2[0])//2, (pixel_wp1[1]+pixel_wp2[1])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
     cv2.imshow('Measured wall distances', img_contour)
-    cv2.waitKey(1000)
+    cv2.waitKey(0) #quit on key press
     cv2.destroyAllWindows()

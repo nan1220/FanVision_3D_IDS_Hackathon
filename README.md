@@ -17,10 +17,10 @@ Capture the photos of the ventilator and its surroundings using a 3D camera (fro
 
 ### 2. Preprocessing
 #### Edge Detection and Enhancement
-![Image](https://github.com/user-attachments/assets/e1c770e9-e306-47e3-bf5e-b180e7e704ce)
+
 
 #### Image Skewing
-<img width="938" height="528" alt="Image" src="https://github.com/user-attachments/assets/865f53b5-e4f0-4503-834b-59e0c13eb5cc" />
+
 
 
 
