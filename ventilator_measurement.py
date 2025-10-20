@@ -1,12 +1,13 @@
 import cv2
 import numpy as np
+from math import sqrt
 from pathlib import Path
 import matplotlib.pyplot as plt
 
 ROOT_PATH = Path(__file__).parent.resolve().absolute()
 # Adjust path to image as needed
-# IMAGE_PATH = ROOT_PATH / "test images(from google)/ventilator-with-fan-window.jpg"  
-IMAGE_PATH = ROOT_PATH / "test images(from google)/bathroom-fan-installation.jpg"
+IMAGE_PATH = ROOT_PATH / "test images(from google)/ventilator-with-fan-window.jpg"  
+# IMAGE_PATH = ROOT_PATH / "test images(from google)/two_fans.jpg"
 
 
 PERFECT_CAMERA = False   # True: only 2-point calibration, False: perspective transformation with 4 points
@@ -99,8 +100,11 @@ if img is None:
     print(f"Error: Image '{IMAGE_PATH}' could not be loaded.")
     exit(1)
 # Resize image
-resize_factor = 0.2
-img = cv2.resize(img, (0, 0), fx=resize_factor, fy=resize_factor)
+no_resize_at = 1.5e6
+if img.size > no_resize_at:
+    # resize_factor = 0.2
+    resize_factor = sqrt(no_resize_at / img.size)
+    img = cv2.resize(img, (0, 0), fx=resize_factor, fy=resize_factor)
 
 if PERFECT_CAMERA:
     # Only 2-point calibration, no rectification
