@@ -50,7 +50,7 @@ The ventilator frame becomes a perfect rectangle, reducing geometric distortion 
 > ❗ **Note again:** this is not the photo we used during Hackathon, but a similar one for demonstration purposes
 
 
-| Input:Original Image(impefectly aligned)| Output: Warped (rectified) image |
+| Input: Original Image(impefectly aligned)| Output: Warped (rectified) image |
 | ----------- | ----------- |
 | ![Image](https://github.com/user-attachments/assets/8c1e25c2-a5a2-4587-8ad6-5028f7ba3e5f)| ![Image](https://github.com/user-attachments/assets/6e9b8e08-2342-4ed4-91bf-424b6129903c)
 
@@ -65,7 +65,9 @@ The ventilator frame becomes a perfect rectangle, reducing geometric distortion 
   - **Hough Circle Transform** for circular blades
 
   for example:
+
   <img width="431" height="388" alt="Image" src="https://github.com/user-attachments/assets/2f410121-abde-47d1-988f-674cc72ecc40" />
+
   - **Contour and edge analysis** for rectangular ventilator frames
 - Label detected objects with bounding boxes or contours.
 
@@ -84,9 +86,7 @@ We don't need to skew the image. We can directly use the perfectly aligned image
 
 ### Here is an example by video demonstration:
 
-
-
-
+https://github.com/user-attachments/assets/454403b8-ff97-4158-9227-d3e494e39b83
 
 > ❗ **Note again:** the above image is not the initial image we used during Hackathon, but a similar one for demonstration purposes.
 
