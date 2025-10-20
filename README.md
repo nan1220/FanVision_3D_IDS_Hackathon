@@ -1,5 +1,7 @@
 # FanVision: 3D Measurement System for Fan Installation - IDS Computer Vision Hackathon
-This repository contains code and resources for the Fan Installation Vision Measurement project, developed as part of the IDS Computer Vision Hackathon. The project focuses on using computer vision techniques to measure and analyze fan installations.
+This repository contains code and resources for the Fan Installation Vision Measurement project, developed as part of the IDS Computer Vision Hackathon (08.10.2025-09.10.2025). The project focuses on using computer vision techniques to measure and analyze fan installations.
+
+> ❗ **Note:** The project was finished during the Hackathon event (08.10.2025-09.10.2025), but due to the confidentiality agreement with the company, some confidential data and details cannot be shared here. I have replaced those confidential parts with similar data for demonstration purposes after the Hackathon.
 ## Hackathon Team Members:
 
 - **[Nan Jiang](https://www.linkedin.com/in/nan-jiang-tum)**   <br>
