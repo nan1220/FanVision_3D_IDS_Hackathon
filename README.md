@@ -20,6 +20,12 @@ It helps ensure **optimal installation distance** for airflow efficiency and saf
 1. **measure the ventilator's surrounding physical dimensions using image and depth data.**  
 2. **Measure the gap between the ventilator frame and the spinning fan blade.**  
 
+### Here is an example of our solution by video demonstration:
+
+https://github.com/user-attachments/assets/454403b8-ff97-4158-9227-d3e494e39b83
+
+> ❗ **Note:** the above image is not the initial image we used during Hackathon, but a similar one for demonstration purposes. I replaced the confidential photos and recorded it after Hackathon to demonstrate the solution.
+
 ## Solution Structure
 
 ### 1. Data Acquisition
@@ -79,15 +85,10 @@ we would first use the image preprocessing and skew the image to make the lines 
 <img width="1156" height="1174" alt="Image" src="https://github.com/user-attachments/assets/525bd767-a3b3-4d6e-a8d5-cf17d5386c7d" />
 
 (there is less than 1cm error.)
+> ❗ **Note again:** the above image is not the initial image we used during Hackathon, but a similar one for demonstration purposes.
 
 #### For perfectly aligned images:
 We don't need to skew the image. We can directly use the perfectly aligned image to estimate the dimensions of the surroundings.
 
-
-### Here is an example by video demonstration:
-
-https://github.com/user-attachments/assets/454403b8-ff97-4158-9227-d3e494e39b83
-
-> ❗ **Note again:** the above image is not the initial image we used during Hackathon, but a similar one for demonstration purposes.
 
 
