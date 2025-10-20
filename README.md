@@ -2,6 +2,13 @@
 This repository contains code and resources for the Fan Installation Vision Measurement project, developed as part of the IDS Computer Vision Hackathon. The project focuses on using computer vision techniques to measure and analyze fan installations.
 ## Hackathon Team Members:
 
+- **[Nan Jiang](https://www.linkedin.com/in/nan-jiang-tum)**   <br>
+
+- **[Bavly Kirolos](https://www.linkedin.com/in/bavly-kirolos-01a45321b)** <br>
+- **[Kassandra Karger](https://github.com/kassi822)**<br>
+- **[Louis Wolf](https://www.linkedin.com/in/louis-wolf-686848108)** <br>
+- **[Felix Kammerer](https://github.com/fkamm)** <br>
+
 
 
 ## Introduction
