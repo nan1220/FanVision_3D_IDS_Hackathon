@@ -7,9 +7,9 @@ This repository contains code and resources for the Fan Installation Vision Meas
 - **[Nan Jiang](https://www.linkedin.com/in/nan-jiang-tum)**   <br>
 
 - **[Bavly Kirolos](https://www.linkedin.com/in/bavly-kirolos-01a45321b)** <br>
-- **[Kassandra Karger](https://github.com/kassi822)**<br>
+- **[Kassandra Karger](linkedin.com/in/kassandra-karger)**<br>
 - **[Louis Wolf](https://www.linkedin.com/in/louis-wolf-686848108)** <br>
-- **[Felix Kammerer](https://github.com/fkamm)** <br>
+- **[Felix Kammerer](linkedin.com/in/felix-kammerer-4a7848170)** <br>
 
 
 
